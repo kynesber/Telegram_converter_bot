@@ -1,0 +1,19 @@
+# Секреты
+.env
+.env.local
+
+# Сборка
+build/
+cmake-build-*/
+*.o
+*.obj
+*.a
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# ОС
+.DS_Store
+Thumbs.db

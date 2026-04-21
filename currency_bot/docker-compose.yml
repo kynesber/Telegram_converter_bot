@@ -1,0 +1,18 @@
+services:
+  currency-bot:
+    # Собираем из Dockerfile в текущей директории.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Имя итогового контейнера
+    container_name: currency-bot
+    # Перезапускаем всегда, кроме случая, когда вы явно остановили.
+    restart: unless-stopped
+    # Переменные окружения подтягиваем из файла .env
+    env_file:
+      - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
