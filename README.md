@@ -3,6 +3,7 @@
 Небольшой Telegram-бот на C++17, который умеет конвертировать валюты, показывать курсы и список поддерживаемых валют. Данные берёт у бесплатного открытого сервиса [Frankfurter](https://www.frankfurter.app) (на базе курсов ЕЦБ).
 
 > **Важно про список валют.** Frankfurter использует референсные курсы Европейского Центрального Банка. ЕЦБ публикует около 30 мировых валют: USD, EUR, GBP, JPY, CHF, CNY, AUD, CAD, NOK, SEK, PLN, CZK, HUF, TRY и т. д. **RUB, BYN, UAH, KZT в этом списке отсутствуют** — такие запросы вернут ошибку. Полный актуальный список валют можно получить командой `/currencies` у самого бота или прямо из браузера: <https://api.frankfurter.app/currencies>.
+
 ## Используемые технологии
 
 - **C++17** — язык программирования.
@@ -16,8 +17,10 @@
 
 ## Структура проекта
 
+Все файлы лежат **прямо в корне репозитория** — так положено, иначе GitHub Actions не увидит `.github/workflows/` и CI/CD не запустится.
+
 ```
-currency_bot/
+.
 ├── CMakeLists.txt          # конфигурация сборки CMake
 ├── Dockerfile              # многостадийный образ (builder + runtime)
 ├── docker-compose.yml      # запуск в один контейнер с автоперезапуском
@@ -46,7 +49,7 @@ currency_bot/
 | `/rates <валюта>` | Курсы относительно валюты | `/rates USD` |
 | `/currencies` | Поддерживаемые валюты | `/currencies` |
 
-## Установка зависимостей
+## Установка зависимостей (вручную, ниже приведена сборка через Docker)
 
 ### Ubuntu / Debian
 
@@ -166,6 +169,16 @@ docker compose logs -f
 
 # 4. Остановить
 docker compose down
+```
+
+### Через docker run
+
+```bash
+docker build -t currency-bot .
+docker run -d --name currency-bot --restart unless-stopped \
+    -e BOT_TOKEN="ваш_токен" \
+    -e ALLOWED_USERS="123456,789012" \
+    currency-bot
 ```
 
 ## Лицензия

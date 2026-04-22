@@ -10,7 +10,6 @@ namespace {
 
 // Приводит строку к верхнему регистру. Возвращает новую строку.
 std::string toUpper(std::string s) {
-  // std::transform применяет функцию к каждому элементу диапазона.
   std::transform(s.begin(), s.end(), s.begin(),
                  [](unsigned char c) { return std::toupper(c); });
   return s;
@@ -21,6 +20,8 @@ std::vector<std::string> split(const std::string& text) {
   std::istringstream iss(text);
   std::vector<std::string> tokens;
   std::string token;
+  // Операция >> у istream читает «слово» — непустую последовательность
+  // непробельных символов.
   while (iss >> token) {
     tokens.push_back(token);
   }
@@ -29,28 +30,35 @@ std::vector<std::string> split(const std::string& text) {
 
 }  // namespace
 
+// Конструктор
+
 BotHandler::BotHandler(const std::string& token,
                        std::unordered_set<std::int64_t> allowedUsers)
-    : bot_(token), converter_(), allowedUsers_(std::move(allowedUsers)) {
+    : bot_(token),
+      converter_(),
+      allowedUsers_(std::move(
+          allowedUsers))  // std::move передаёт владение без копирования
+{
   // В теле конструктора регистрируем все обработчики команд.
   registerHandlers();
 }
 
+// Возвращает true, если список пуст (значит «разрешено всем»)
+// или если userId есть в множестве разрешённых.
 bool BotHandler::isAllowed(std::int64_t userId) const {
   if (allowedUsers_.empty()) {
     return true;
   }
-  // count() возвращает 0 или 1 для множества — удобная проверка вхождения.
+
   return allowedUsers_.count(userId) > 0;
 }
 
 // Регистрация обработчиков
+
 void BotHandler::registerHandlers() {
   auto guarded = [this](auto&& handler) {
     // Возвращаем новую лямбду, которую и отдадим библиотеке как колбэк.
     return [this, handler](TgBot::Message::Ptr message) {
-      // message->from может быть nullptr для некоторых системных сообщений —
-      // проверяем, чтобы не упасть с сегфолтом.
       if (!message->from || !isAllowed(message->from->id)) {
         reply(message->chat->id, "Извините, у вас нет доступа к этому боту.");
         return;
@@ -74,6 +82,8 @@ void BotHandler::registerHandlers() {
   // onAnyMessage вызывается для любого сообщения. Покажем подсказку, если
   // пришёл неопознанный текст.
   bot_.getEvents().onAnyMessage([this](TgBot::Message::Ptr message) {
+    // StringTools::startsWith — утилита из tgbot-cpp: проверяет префикс.
+    // Если текст — команда, мы её уже обработали выше, здесь можно пропустить.
     if (StringTools::startsWith(message->text, "/")) {
       return;
     }
@@ -104,7 +114,6 @@ void BotHandler::onHelp(TgBot::Message::Ptr message) {
 
 void BotHandler::onConvert(TgBot::Message::Ptr message) {
   // Разбиваем сообщение на токены.
-  // Ожидаем формат: "/convert 100 USD EUR" — четыре токена.
   const auto tokens = split(message->text);
 
   if (tokens.size() != 4) {
@@ -112,7 +121,6 @@ void BotHandler::onConvert(TgBot::Message::Ptr message) {
     return;
   }
 
-  // Пытаемся распарсить сумму. std::stod кидает исключение при ошибке.
   double amount = 0.0;
   try {
     amount = std::stod(tokens[1]);
@@ -198,8 +206,12 @@ void BotHandler::run() {
     std::cout << "Бот запущен как: " << bot_.getApi().getMe()->username
               << std::endl;
 
+    // deleteWebhook нужен, когда мы хотим long-polling
     bot_.getApi().deleteWebhook();
 
+    // TgLongPoll — класс, реализующий long-polling.
+    // В бесконечном цикле он делает запрос getUpdates и вызывает
+    // зарегистрированные колбэки.
     TgBot::TgLongPoll longPoll(bot_);
     while (true) {
       std::cout << "Опрашиваем Telegram..." << std::endl;
